@@ -8,7 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
-const DIST_DIR = path.join(__dirname, 'dist');
+const RESOLVED_DIST = path.resolve(__dirname, 'dist');
+const INDEX_HTML = path.join(RESOLVED_DIST, 'index.html');
 
 // Mock NFC registry database
 const NFC_REGISTRY = [
@@ -52,6 +53,41 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
+/**
+ * Sanitizes and safely resolves a requested URL pathname inside the static DIST directory.
+ * Prevents Path Traversal (CWE-22) vulnerabilities.
+ * @param {string} requestUrl 
+ * @returns {string | null} Validated absolute path within RESOLVED_DIST, or null if invalid/traversal attempted.
+ */
+function getSafeStaticPath(requestUrl) {
+  try {
+    const parsed = new URL(requestUrl, 'http://localhost');
+    const decoded = decodeURIComponent(parsed.pathname);
+
+    // Reject null byte injection attacks
+    if (decoded.includes('\0')) {
+      return null;
+    }
+
+    // Normalize path and eliminate any leading parent directory traversals
+    const safeSubPath = path.normalize(decoded).replace(/^(\.\.[\/\\])+/, '');
+    const cleanSubPath = safeSubPath.startsWith(path.sep) ? safeSubPath.slice(1) : safeSubPath;
+    const resolvedPath = path.resolve(RESOLVED_DIST, cleanSubPath);
+
+    // Strictly ensure resolved path resides within RESOLVED_DIST directory
+    const relative = path.relative(RESOLVED_DIST, resolvedPath);
+    const isInsideDist = !relative.startsWith('..') && !path.isAbsolute(relative);
+
+    if (!isInsideDist) {
+      return null;
+    }
+
+    return resolvedPath;
+  } catch {
+    return null;
+  }
+}
+
 const server = http.createServer((req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -64,14 +100,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = parsedUrl.pathname;
+
   // API Endpoints
-  if (req.url === '/api/nfc/tags' && req.method === 'GET') {
+  if (pathname === '/api/nfc/tags' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, tags: NFC_REGISTRY }));
     return;
   }
 
-  if (req.url === '/api/nfc/simulate-scan' && req.method === 'POST') {
+  if (pathname === '/api/nfc/simulate-scan' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
@@ -93,7 +132,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.url === '/api/status' && req.method === 'GET') {
+  if (pathname === '/api/status' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ONLINE',
@@ -104,18 +143,23 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Static File Serving
-  let filePath = path.join(DIST_DIR, req.url === '/' ? 'index.html' : req.url);
+  // Safe Static File Serving with Path Traversal Protection (CWE-22)
+  const safePath = getSafeStaticPath(req.url);
 
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      filePath = path.join(DIST_DIR, 'index.html');
-    }
+  if (!safePath) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('403 Forbidden: Invalid file path');
+    return;
+  }
 
-    const ext = path.extname(filePath).toLowerCase();
+  fs.stat(safePath, (err, stats) => {
+    // If requested file does not exist or is a directory (e.g. root /), fallback safely to index.html
+    const fileToServe = (!err && stats.isFile()) ? safePath : INDEX_HTML;
+
+    const ext = path.extname(fileToServe).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-    fs.readFile(filePath, (readErr, data) => {
+    fs.readFile(fileToServe, (readErr, data) => {
       if (readErr) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
