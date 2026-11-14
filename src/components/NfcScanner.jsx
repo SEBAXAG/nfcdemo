@@ -201,12 +201,14 @@ export default function NfcScanner({
       </div>
 
       {/* --- The NFC Induction Scanner Pad --- */}
-      <div
+      <button
+        type="button"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !hasScanned && handleSimulateScan(selectedTech)}
-        className={`relative group rounded-2xl p-6 transition-all duration-300 border cursor-pointer select-none overflow-hidden ${
+        aria-label="Zona de inducción y escaneo NFC"
+        className={`w-full text-left relative group rounded-2xl p-6 transition-all duration-300 border cursor-pointer select-none overflow-hidden ${
           hasScanned
             ? 'bg-gradient-to-br from-cyan-950/40 to-slate-900/60 border-cyan-400 shadow-[0_0_35px_rgba(0,242,254,0.3)]'
             : isHoveringPad || isScanning
@@ -298,7 +300,7 @@ export default function NfcScanner({
             </span>
           </div>
         )}
-      </div>
+      </button>
 
       {/* --- Selectable NFC Technologies (Cards, Chips, Fobs, Phones) --- */}
       <div>
@@ -316,18 +318,19 @@ export default function NfcScanner({
             const Icon = item.icon;
             const isSelected = selectedTech.id === item.id;
             return (
-              <div
+              <button
+                type="button"
                 key={item.id}
                 draggable
                 onDragStart={(e) => handleDragStart(e, item)}
                 onClick={() => setSelectedTech(item)}
-                className={`relative p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                className={`text-left w-full relative p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
                   isSelected
                     ? `bg-slate-900/90 ${item.borderColor} shadow-[0_0_15px_rgba(0,242,254,0.25)]`
                     : 'bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
                 }`}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between w-full">
                   <div className={`p-2 rounded-lg bg-gradient-to-br ${item.color} text-black font-bold shadow-md`}>
                     <Icon className="w-5 h-5" />
                   </div>
@@ -338,20 +341,20 @@ export default function NfcScanner({
                   )}
                 </div>
 
-                <div className="mt-2.5">
-                  <h4 className="text-xs font-bold text-slate-200 truncate">
+                <div className="mt-2.5 w-full">
+                  <span className="block text-xs font-bold text-slate-200 truncate">
                     {item.name}
-                  </h4>
+                  </span>
                   <p className="text-[11px] text-slate-400 font-mono truncate">
                     {item.type}
                   </p>
                 </div>
 
-                <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500 w-full">
                   <span>{item.frequency}</span>
                   <span className="text-cyan-400/80">{item.capacity}</span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
