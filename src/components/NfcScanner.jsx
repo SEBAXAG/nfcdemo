@@ -81,14 +81,14 @@ export default function NfcScanner({
 
   // Check Web NFC API support
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'NDEFReader' in window) {
+    if (typeof window !== 'undefined' && 'NDEFReader' in window && typeof window.NDEFReader === 'function') {
       setHardwareNfcSupported(true);
     }
   }, []);
 
   // Listen for real physical NFC tap if user is on compatible device
   const toggleHardwareNfc = async () => {
-    if (!('NDEFReader' in window)) {
+    if (typeof window === 'undefined' || !('NDEFReader' in window) || typeof window.NDEFReader !== 'function') {
       alert('La API Web NFC solo está disponible en navegadores compatibles (como Chrome en Android) con chip NFC activado.');
       return;
     }
@@ -99,7 +99,7 @@ export default function NfcScanner({
         return;
       }
 
-      const ndef = new window.NDEFReader();
+      const ndef = Reflect.construct(window.NDEFReader, []);
       await ndef.scan();
       setHardwareNfcListening(true);
       cyberAudio.playNfcTap();
