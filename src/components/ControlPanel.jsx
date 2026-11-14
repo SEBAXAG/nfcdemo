@@ -78,9 +78,9 @@ export default function ControlPanel({
 
       {/* --- Facial Expression & Gestures Selection --- */}
       <div>
-        <label className="text-xs font-cyber tracking-wider text-slate-400 uppercase block mb-2">
+        <span className="text-xs font-cyber tracking-wider text-slate-400 uppercase block mb-2">
           Gestos y Expresiones Faciales:
-        </label>
+        </span>
         <div className="grid grid-cols-4 gap-2">
           {expressions.map((item) => {
             const Icon = item.icon;
@@ -105,9 +105,9 @@ export default function ControlPanel({
 
       {/* --- Holographic Theme / Particle Color Matrix --- */}
       <div>
-        <label className="text-xs font-cyber tracking-wider text-slate-400 uppercase block mb-2">
+        <span className="text-xs font-cyber tracking-wider text-slate-400 uppercase block mb-2">
           Matriz de Color Holográfica:
-        </label>
+        </span>
         <div className="grid grid-cols-4 gap-2">
           {themes.map((t) => {
             const isSelected = theme === t.id;
@@ -131,11 +131,13 @@ export default function ControlPanel({
 
       {/* --- Custom Voice Interaction / Prompt --- */}
       <div>
-        <label className="text-xs font-cyber tracking-wider text-slate-400 uppercase block mb-2">
+        <label htmlFor="custom-voice-input" className="text-xs font-cyber tracking-wider text-slate-400 uppercase block mb-2">
           Interacción por Voz & Articulación:
         </label>
         <form onSubmit={handleCustomSubmit} className="flex gap-2">
           <input
+            id="custom-voice-input"
+            name="customVoice"
             type="text"
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
